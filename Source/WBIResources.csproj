@@ -1,0 +1,158 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project ToolsVersion="15.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <Import Project="$(MSBuildExtensionsPath)\$(MSBuildToolsVersion)\Microsoft.Common.props" Condition="Exists('$(MSBuildExtensionsPath)\$(MSBuildToolsVersion)\Microsoft.Common.props')" />
+  <PropertyGroup>
+    <Configuration Condition=" '$(Configuration)' == '' ">Debug</Configuration>
+    <Platform Condition=" '$(Platform)' == '' ">AnyCPU</Platform>
+    <ProjectGuid>{9E6C131F-3161-486A-84F3-9F16768B4D4B}</ProjectGuid>
+    <OutputType>Library</OutputType>
+    <AppDesignerFolder>Properties</AppDesignerFolder>
+    <RootNamespace>WBIResources</RootNamespace>
+    <AssemblyName>WBIResources</AssemblyName>
+    <TargetFrameworkVersion>v4.5</TargetFrameworkVersion>
+    <FileAlignment>512</FileAlignment>
+    <Deterministic>true</Deterministic>
+  </PropertyGroup>
+  <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Debug|AnyCPU' ">
+    <DebugSymbols>true</DebugSymbols>
+    <DebugType>portable</DebugType>
+    <Optimize>false</Optimize>
+    <OutputPath>bin\Debug\</OutputPath>
+    <DefineConstants>DEBUG;TRACE</DefineConstants>
+    <ErrorReport>prompt</ErrorReport>
+    <WarningLevel>4</WarningLevel>
+  </PropertyGroup>
+  <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Release|AnyCPU' ">
+    <DebugType>pdbonly</DebugType>
+    <Optimize>true</Optimize>
+    <OutputPath>bin\Release\</OutputPath>
+    <DefineConstants>TRACE</DefineConstants>
+    <ErrorReport>prompt</ErrorReport>
+    <WarningLevel>4</WarningLevel>
+  </PropertyGroup>
+  <ItemGroup>
+    <Reference Include="Assembly-CSharp">
+      <HintPath>..\..\..\..\..\KSPDev\KSP_x64_Data\Managed\Assembly-CSharp.dll</HintPath>
+    </Reference>
+    <Reference Include="Assembly-CSharp-firstpass">
+      <HintPath>..\..\..\..\..\KSPDev\KSP_x64_Data\Managed\Assembly-CSharp-firstpass.dll</HintPath>
+    </Reference>
+    <Reference Include="System" />
+    <Reference Include="System.Core" />
+    <Reference Include="System.Xml.Linq" />
+    <Reference Include="System.Data.DataSetExtensions" />
+    <Reference Include="Microsoft.CSharp" />
+    <Reference Include="System.Data" />
+    <Reference Include="System.Net.Http" />
+    <Reference Include="System.Xml" />
+    <Reference Include="UnityEngine">
+      <HintPath>..\..\..\..\..\KSPDev\KSP_x64_Data\Managed\UnityEngine.dll</HintPath>
+    </Reference>
+    <Reference Include="UnityEngine.AnimationModule">
+      <HintPath>..\..\..\..\..\KSPDev\KSP_x64_Data\Managed\UnityEngine.AnimationModule.dll</HintPath>
+    </Reference>
+    <Reference Include="UnityEngine.AssetBundleModule">
+      <HintPath>..\..\..\..\..\KSPDev\KSP_x64_Data\Managed\UnityEngine.AssetBundleModule.dll</HintPath>
+    </Reference>
+    <Reference Include="UnityEngine.AudioModule">
+      <HintPath>..\..\..\..\..\KSPDev\KSP_x64_Data\Managed\UnityEngine.AudioModule.dll</HintPath>
+    </Reference>
+    <Reference Include="UnityEngine.CoreModule">
+      <HintPath>..\..\..\..\..\KSPDev\KSP_x64_Data\Managed\UnityEngine.CoreModule.dll</HintPath>
+    </Reference>
+    <Reference Include="UnityEngine.ImageConversionModule">
+      <HintPath>..\..\..\..\..\KSPDev\KSP_x64_Data\Managed\UnityEngine.ImageConversionModule.dll</HintPath>
+    </Reference>
+    <Reference Include="UnityEngine.IMGUIModule">
+      <HintPath>..\..\..\..\..\KSPDev\KSP_x64_Data\Managed\UnityEngine.IMGUIModule.dll</HintPath>
+    </Reference>
+    <Reference Include="UnityEngine.InputLegacyModule">
+      <HintPath>..\..\..\..\..\KSPDev\KSP_x64_Data\Managed\UnityEngine.InputLegacyModule.dll</HintPath>
+    </Reference>
+    <Reference Include="UnityEngine.InputModule">
+      <HintPath>..\..\..\..\..\KSPDev\KSP_x64_Data\Managed\UnityEngine.InputModule.dll</HintPath>
+    </Reference>
+    <Reference Include="UnityEngine.ParticleSystemModule">
+      <HintPath>..\..\..\..\..\KSPDev\KSP_x64_Data\Managed\UnityEngine.ParticleSystemModule.dll</HintPath>
+    </Reference>
+    <Reference Include="UnityEngine.PhysicsModule">
+      <HintPath>..\..\..\..\..\KSPDev\KSP_x64_Data\Managed\UnityEngine.PhysicsModule.dll</HintPath>
+    </Reference>
+    <Reference Include="UnityEngine.TextCoreModule">
+      <HintPath>..\..\..\..\..\KSPDev\KSP_x64_Data\Managed\UnityEngine.TextCoreModule.dll</HintPath>
+    </Reference>
+    <Reference Include="UnityEngine.TextRenderingModule">
+      <HintPath>..\..\..\..\..\KSPDev\KSP_x64_Data\Managed\UnityEngine.TextRenderingModule.dll</HintPath>
+    </Reference>
+    <Reference Include="UnityEngine.UI">
+      <HintPath>..\..\..\..\..\KSPDev\KSP_x64_Data\Managed\UnityEngine.UI.dll</HintPath>
+    </Reference>
+    <Reference Include="UnityEngine.UIElementsModule">
+      <HintPath>..\..\..\..\..\KSPDev\KSP_x64_Data\Managed\UnityEngine.UIElementsModule.dll</HintPath>
+    </Reference>
+    <Reference Include="UnityEngine.UIModule">
+      <HintPath>..\..\..\..\..\KSPDev\KSP_x64_Data\Managed\UnityEngine.UIModule.dll</HintPath>
+    </Reference>
+    <Reference Include="UnityEngine.UnityWebRequestWWWModule">
+      <HintPath>..\..\..\..\..\KSPDev\KSP_x64_Data\Managed\UnityEngine.UnityWebRequestWWWModule.dll</HintPath>
+    </Reference>
+  </ItemGroup>
+  <ItemGroup>
+    <Compile Include="CommonCore\ModuleAnimateGenericSFX.cs" />
+    <Compile Include="CommonCore\ResourceHelper.cs" />
+    <Compile Include="CommonCore\TemplateManager.cs" />
+    <Compile Include="CommonCore\WBIAnimation.cs" />
+    <Compile Include="CommonCore\WBILight.cs" />
+    <Compile Include="CommonCore\WBIMeshHelper.cs" />
+    <Compile Include="CommonCore\WBIMeshToggle.cs" />
+    <Compile Include="CommonCore\WBISingleOpsView.cs" />
+    <Compile Include="CommonCore\WBITextureSwitcher.cs" />
+    <Compile Include="Converters\WBIModuleResourceConverterFX.cs" />
+    <Compile Include="GoldStrike\Drills\WBIGoldStrikeAsteroidDrill.cs" />
+    <Compile Include="GoldStrike\Drills\WBIGoldStrikeDrill.cs" />
+    <Compile Include="GoldStrike\GeoLabView.cs" />
+    <Compile Include="GoldStrike\PartModules\WBIGoldStrike.cs" />
+    <Compile Include="GoldStrike\PartModules\WBIGoldStrikeBonus.cs" />
+    <Compile Include="GoldStrike\SettingsAndScenario\GoldStrikeSettings.cs" />
+    <Compile Include="GoldStrike\SettingsAndScenario\WBIGoldStrikeScenario.cs" />
+    <Compile Include="GoldStrike\SupportClasses\GoldStrikeData.cs" />
+    <Compile Include="GoldStrike\SupportClasses\GoldStrikeLode.cs" />
+    <Compile Include="GoldStrike\SupportClasses\GoldStrikeUtils.cs" />
+    <Compile Include="GoldStrike\SupportClasses\WBILodeIconHelper.cs" />
+    <Compile Include="GoldStrike\VesselModules\GoldStrikeVesselModule.cs" />
+    <Compile Include="GoldStrike\WBIGeoLab.cs" />
+    <Compile Include="GUI\BaseDialog\Dialog.cs" />
+    <Compile Include="GUI\BaseDialog\DialogManager.cs" />
+    <Compile Include="GUI\BaseDialog\DialogUils.cs" />
+    <Compile Include="GUI\ConvertibleStorageView.cs" />
+    <Compile Include="CommonCore\ExtendedPartModule.cs" />
+    <Compile Include="CommonCore\WBIAffordableSwitcher.cs" />
+    <Compile Include="CommonCore\WBIConvertibleStorage.cs" />
+    <Compile Include="CommonCore\WBIInflatablePartModule.cs" />
+    <Compile Include="CommonCore\WBIModuleSwitcher.cs" />
+    <Compile Include="CommonCore\WBIMultiConverter.cs" />
+    <Compile Include="CommonCore\WBIOpsManager.cs" />
+    <Compile Include="CommonCore\WBIResourceConverter.cs" />
+    <Compile Include="CommonCore\WBIResourceSwitcher.cs" />
+    <Compile Include="CommonCore\FixedUpdateHelper.cs" />
+    <Compile Include="GUI\HarvestView.cs" />
+    <Compile Include="GUI\InfoView.cs" />
+    <Compile Include="CommonCore\LocalOpsManager.cs" />
+    <Compile Include="GUI\OpsManagerView.cs" />
+    <Compile Include="Utils\Utils.cs" />
+    <Compile Include="Omni\WBIAstroTank.cs" />
+    <Compile Include="Omni\WBIBackgroundConverter.cs" />
+    <Compile Include="Omni\WBIModuleResourceHarvester.cs" />
+    <Compile Include="Omni\WBIOmniConverter.cs" />
+    <Compile Include="Omni\WBIOmniManager.cs" />
+    <Compile Include="Omni\WBIOmniStorage.cs" />
+    <Compile Include="Properties\AssemblyInfo.cs" />
+    <Compile Include="SettingsAndScenario\WBIResourcesSettings.cs" />
+  </ItemGroup>
+  <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
+  <PropertyGroup>
+    <PostBuildEvent>xcopy /Y "$(TargetPath)" "C:\KSPDev\GameData\WildBlueIndustries\0WBIResources\Plugins\"﻿
+xcopy /Y "$(TargetDir)$(TargetName).dll" "C:\KSPDev\GameData\WildBlueIndustries\0WBIResources\Plugins\"
+xcopy /Y "$(TargetDir)$(TargetName).pdb" "C:\KSPDev\GameData\WildBlueIndustries\0WBIResources\Plugins\"</PostBuildEvent>
+  </PropertyGroup>
+</Project>
