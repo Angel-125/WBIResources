@@ -28,7 +28,7 @@ namespace WBIResources
     public class WBIOmniStorage : PartModule, IOpsView, IPartCostModifier
     {
         const string kKISResource = "KIS Inventory";
-        const string kDefaultBlacklist = "GeoEnergy;ElectroPlasma;CoreHeat;wbiAtmosphere;CompressedAtmosphere;LabTime;ExposureTime;ScopeTime;SolarReports;SimulatorTime;GravityWaves;IntakeLqd;IntakeAir;StaticCharge;EVA Propellant;Plants;CoreSamples;MJPropellant;SOCSFuel";
+        const string kDefaultBlacklist = "GeoEnergy;wbiElectroPlasma;wbiCoreHeat;wbiAtmosphere;wbiCompressedAtmosphere;LabTime;ExposureTime;ScopeTime;SolarReports;SimulatorTime;GravityWaves;IntakeLqd;IntakeAir;StaticCharge;EVA Propellant;Plants;CoreSamples;MJPropellant;SOCSFuel";
         const string kDefaultRestrictedList = "Graviolium";
 
         #region Fields
@@ -289,9 +289,9 @@ namespace WBIResources
             //Setup the delete icon
             if (deleteIcon == null)
             {
-                deleteIcon = GameDatabase.Instance.GetTexture("WildBlueIndustries/WBIResources/Icons/TrashCan", false);
-                copyIcon = GameDatabase.Instance.GetTexture("WildBlueIndustries/WBIResources/Icons/CopyIcon", false);
-                pasteIcon = GameDatabase.Instance.GetTexture("WildBlueIndustries/WBIResources/Icons/PasteIcon", false);
+                deleteIcon = GameDatabase.Instance.GetTexture("WildBlueIndustries/0WBIResources/Icons/TrashCan", false);
+                copyIcon = GameDatabase.Instance.GetTexture("WildBlueIndustries/0WBIResources/Icons/CopyIcon", false);
+                pasteIcon = GameDatabase.Instance.GetTexture("WildBlueIndustries/0WBIResources/Icons/PasteIcon", false);
             }
 
             //Get the switcher
