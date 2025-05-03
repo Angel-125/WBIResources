@@ -22,6 +22,12 @@ namespace WBIResources
 
     public class ExtendedPartModule : PartModule
     {
+        /// <summary>
+        /// ID of the module. Used to find the proper config node.
+        /// </summary>
+        [KSPField]
+        public string moduleID = string.Empty;
+
         #region Logging
         public virtual void Log(object message)
         {
@@ -185,6 +191,52 @@ namespace WBIResources
             }
         }
 
+        /// <summary>
+        /// Retrieves the module's config node from the part config.
+        /// </summary>
+        /// <param name="className">Optional. The name of the part module to search for.</param>
+        /// <returns>A ConfigNode for the part module.</returns>
+        public ConfigNode getPartConfigNode(string className = "")
+        {
+            if (!HighLogic.LoadedSceneIsEditor && !HighLogic.LoadedSceneIsFlight)
+                return null;
+            if (this.part.partInfo.partConfig == null)
+                return null;
+            ConfigNode[] nodes = this.part.partInfo.partConfig.GetNodes("MODULE");
+            ConfigNode partConfigNode = null;
+            ConfigNode node = null;
+            string moduleName;
+            string nodeModuleID;
+
+            //Get the config node.
+            for (int index = 0; index < nodes.Length; index++)
+            {
+                node = nodes[index];
+                if (node.HasValue("name"))
+                {
+                    moduleName = node.GetValue("name");
+                    if (moduleName == this.ClassName || moduleName == className)
+                    {
+                        if (!string.IsNullOrEmpty(moduleID) && node.HasValue("moduleID"))
+                        {
+                            nodeModuleID = node.GetValue("moduleID");
+                            if (moduleID == nodeModuleID)
+                            {
+                                partConfigNode = node;
+                                break;
+                            }
+                        }
+                        else
+                        {
+                            partConfigNode = node;
+                            break;
+                        }
+                    }
+                }
+            }
+
+            return partConfigNode;
+        }
         #endregion
     }
 }
