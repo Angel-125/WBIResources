@@ -391,7 +391,7 @@ namespace WBIResources
             return true;
         }
 
-        protected void calculateRemodelCostModifier(string skillRequired = kDefaultSkill)
+        protected virtual void calculateRemodelCostModifier(string skillRequired = kDefaultSkill)
         {
             int highestLevel = 0;
             if (HighLogic.LoadedSceneIsFlight == false)

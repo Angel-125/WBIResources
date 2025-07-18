@@ -103,12 +103,16 @@
     <Compile Include="CommonCore\ResourceHelper.cs" />
     <Compile Include="CommonCore\TemplateManager.cs" />
     <Compile Include="CommonCore\WBIAnimation.cs" />
+    <Compile Include="CommonCore\WBIAsteroidSelector.cs" />
     <Compile Include="CommonCore\WBILight.cs" />
     <Compile Include="CommonCore\WBIMeshHelper.cs" />
     <Compile Include="CommonCore\WBIMeshToggle.cs" />
     <Compile Include="CommonCore\WBISingleOpsView.cs" />
     <Compile Include="CommonCore\WBITextureSwitcher.cs" />
+    <Compile Include="Converters\WBIAsteroidProspector.cs" />
+    <Compile Include="Converters\WBIModuleGreenhouse.cs" />
     <Compile Include="Converters\WBIModuleResourceConverterFX.cs" />
+    <Compile Include="Converters\WBIProspector.cs" />
     <Compile Include="GoldStrike\Drills\WBIGoldStrikeAsteroidDrill.cs" />
     <Compile Include="GoldStrike\Drills\WBIGoldStrikeDrill.cs" />
     <Compile Include="GoldStrike\GeoLabView.cs" />
