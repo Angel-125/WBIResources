@@ -154,6 +154,9 @@
     <Compile Include="Properties\AssemblyInfo.cs" />
     <Compile Include="SettingsAndScenario\WBIResourcesSettings.cs" />
   </ItemGroup>
+  <ItemGroup>
+    <Folder Include="Experimental\" />
+  </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
   <PropertyGroup>
     <PostBuildEvent>xcopy /Y "$(TargetPath)" "C:\KSPDev\GameData\WildBlueIndustries\0WBIResources\Plugins\"﻿

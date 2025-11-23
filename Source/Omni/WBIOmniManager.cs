@@ -121,7 +121,7 @@ namespace WBIResources
             elapsedTime = secondsPerCycle;
             if (elapsedTime < secondsPerCycle)
                 return;
-            if (backgroundConverters.Count == 0)
+            if (backgroundConverters == null || backgroundConverters.Count == 0)
                 return;
 
             //Reset the timer

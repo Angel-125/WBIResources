@@ -69,4 +69,3 @@ C:\Projects\KSP\WildBlueIndustries\WBIResources\Source\obj\Debug\WBIResources.cs
 C:\Projects\KSP\WildBlueIndustries\WBIResources\Source\obj\Debug\WBIResources.csproj.CopyComplete
 C:\Projects\KSP\WildBlueIndustries\WBIResources\Source\obj\Debug\WBIResources.dll
 C:\Projects\KSP\WildBlueIndustries\WBIResources\Source\obj\Debug\WBIResources.pdb
-C:\Projects\KSP\WildBlueIndustries\WBIResources\Source\obj\Debug\WBIResources.csproj.AssemblyReference.cache
