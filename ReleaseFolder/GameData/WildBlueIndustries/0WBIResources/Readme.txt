@@ -15,6 +15,8 @@ GameData/WildBlueIndustries/WBIResources
 - You can select a lighter tank structure in the VAB/SPH to save on dry mass at the expense of higher dry mass cost.
 NOTE: If reconfigured in the field, and the dry mass of the tank increases due to the updated resources that the tank will store, then it'll cost more in resources to refit the tank.
 
+- Added WBIGoldStrikeCometDrill to drill resources in comets.
+
 - Fixed issue in WBIOmniStorage that incorrectly calculated the number of resource units per resource when an OMNIRESOURCECOMBO was applied.
 
 ---IMPORTANT NOTES---

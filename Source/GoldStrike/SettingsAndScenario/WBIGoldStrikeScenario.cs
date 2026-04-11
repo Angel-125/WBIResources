@@ -399,6 +399,17 @@ namespace WBIResources
             return false;
         }
 
+        public bool IsCometProspected(ModuleComet comet)
+        {
+            if (comet == null)
+                return false;
+
+            if (this.prospectedAsteroids.Contains(comet.CometName))
+                return true;
+
+            return false;
+        }
+
         public bool VesselSituationValid(Vessel vessel)
         {
             if (vessel.situation == Vessel.Situations.LANDED || vessel.situation == Vessel.Situations.SPLASHED || vessel.situation == Vessel.Situations.PRELAUNCH)
@@ -582,6 +593,43 @@ namespace WBIResources
 
             return lodeMap[asteroid.AsteroidName];
         }
+
+        public GoldStrikeLode FindNearestLode(ModuleComet comet)
+        {
+            int planetID;
+            string biomeName;
+            GoldStrikeUtils.GetBiomeAndPlanet(out biomeName, out planetID, null, comet);
+
+            string planetBiomeKey = planetID.ToString() + biomeName;
+            Dictionary<string, GoldStrikeLode> lodeMap = null;
+            debugLog("planetBiomeKey: " + planetBiomeKey);
+
+            //Get the lode map. If there is none then we're done.
+            if (goldStrikeLodes.ContainsKey(planetBiomeKey) == false)
+            {
+                debugLog("goldStrikeLodes has no lodeMap for key: " + planetBiomeKey);
+                return null;
+            }
+            lodeMap = goldStrikeLodes[planetBiomeKey];
+            debugLog("lodeMap has " + lodeMap.Count + " entries");
+            if (debugMode)
+            {
+                foreach (string key in lodeMap.Keys)
+                {
+                    debugLog("Key: " + key + "\r\n lode: " + lodeMap[key].ToString());
+                }
+            }
+
+            //Asteroids only have one lode
+            if (lodeMap.ContainsKey(comet.CometName) == false)
+            {
+                debugLog("No GoldStrikeLode found in lodeMap for " + comet.CometName);
+                return null;
+            }
+
+            return lodeMap[comet.CometName];
+        }
+
 
         public GoldStrikeLode FindNearestLode(int planetID, string biome, double longitude, double latitude, double altitude, double searchDistance = kMaxProspectSearchDistance)
         {

@@ -19,11 +19,12 @@ Any similarity to a real entity is purely coincidental.
 
 THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 */
+
 namespace WBIResources
 {
-    //Asteroid drills work differently than Planetary drills.
-    //They will drill for every resource that an asteroid has.
-    public class WBIGoldStrikeAsteroidDrill : ModuleAsteroidDrill
+    // Comet drills work differently than Planetary drills.
+    // They will drill for every resource that a comet has.
+    public class WBIGoldStrikeCometDrill : ModuleCometDrill
     {
         private const float kMessageDisplayTime = 10.0f;
 
@@ -49,7 +50,7 @@ namespace WBIResources
         public double lodeAbundance;
 
         public GoldStrikeLode nearestLode = null;
-        public ModuleAsteroid asteroid;
+        public ModuleComet comet;
 
         public override void StartResourceConverter()
         {
@@ -89,20 +90,20 @@ namespace WBIResources
 
         protected void findNearestLode()
         {
-            //Do we have an asteroid?
-            asteroid = this.part.vessel.FindPartModuleImplementing<ModuleAsteroid>();
-            if (asteroid == null)
+            //Do we have a comet?
+            comet = this.part.vessel.FindPartModuleImplementing<ModuleComet>();
+            if (comet == null)
             {
                 nearestLode = null;
                 lodeStatus = Localizer.Format(statusNoNearbyName);
                 lodeResourceName = "N/A";
-                Debug.Log("No lode found nearby because there's no captured asteroid.");
+                Debug.Log("No lode found nearby because there's no captured comet.");
                 return;
             }
 
             //Find the nearest lode (if any)
-            Debug.Log("Looking for a prospect lode for asteroid " + asteroid.AsteroidName);
-            nearestLode = WBIGoldStrikeScenario.Instance.FindNearestLode(asteroid);
+            Debug.Log("Looking for a prospect lode for comet " + comet.CometName);
+            nearestLode = WBIGoldStrikeScenario.Instance.FindNearestLode(comet);
 
             if (nearestLode != null)
             {
@@ -128,7 +129,7 @@ namespace WBIResources
                 return;
 
             //Make sure our situation is met
-            if (asteroid == null)
+            if (comet == null)
             {
                 lodeStatus = Localizer.Format(statusNAName);
             }
@@ -140,8 +141,8 @@ namespace WBIResources
                 lodeAbundance = nearestLode.abundance * 100.0f;
             }
 
-            //Has asteroid been prospected?
-            else if (WBIGoldStrikeScenario.Instance.IsAsteroidProspected(asteroid))
+            //Has comet been prospected?
+            else if (WBIGoldStrikeScenario.Instance.IsCometProspected(comet))
             {
                 lodeStatus = Localizer.Format(statusAlreadyProspectedName);
             }
