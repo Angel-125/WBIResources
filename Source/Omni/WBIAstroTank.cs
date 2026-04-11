@@ -76,7 +76,7 @@ namespace WBIResources
             currentStorageCapacity = 0;
             adjustedVolume = currentStorageCapacity;
             inventoryAdjustedVolume = currentStorageCapacity;
-            recalculateMaxAmounts();
+            recalculateMaxAmountsV2();
             reconfigureStorage();
 
             // Hide this event

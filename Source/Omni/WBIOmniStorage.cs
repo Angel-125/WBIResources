@@ -4,6 +4,7 @@ using System.Linq;
 using System.Text;
 using UnityEngine;
 using KSP.IO;
+using KSP.Localization;
 
 /*
 Source code copyright 2018, by Michael Billard (Angel-125)
@@ -18,14 +19,105 @@ THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLI
 */
 namespace WBIResources
 {
+    #region Support Classes
     public struct ComboRatio
     {
         public float ratio;
         public double maxAmountMultiplier;
     }
 
+    public struct MassFractionVariant
+    {
+        public string name;
+        public string displayName;
+        public string primaryColor;
+        public string secondaryColor;
+        public float massFraction;
+        public float costMultiplier;
+    }
+
+    public class OmniMassFraction
+    {
+        public string name;
+        public double maxVolume;
+        public List<MassFractionVariant> massFractionVariants;
+
+        public OmniMassFraction(MassFractionVariant variant)
+        {
+            maxVolume = double.MaxValue;
+
+            massFractionVariants = new List<MassFractionVariant>();
+            massFractionVariants.Add(variant);
+        }
+
+        public OmniMassFraction(ConfigNode node)
+        {
+            // Name
+            if (node.HasValue("name"))
+                name = node.GetValue("name");
+
+            // Max Volume
+            maxVolume = double.MaxValue;
+            if (node.HasValue("maxVolume"))
+                double.TryParse(node.GetValue("maxVolume"), out maxVolume);
+
+            // Load the mass fraction variants
+            massFractionVariants = new List<MassFractionVariant>();
+            if (node.HasNode("VARIANT"))
+            {
+                loadMassFractionVariants(node.GetNodes("VARIANT"));
+            }
+        }
+        private void loadMassFractionVariants(ConfigNode[] nodes)
+        {
+            foreach (ConfigNode variantNode in nodes)
+            {
+                // Get the name
+                if (!variantNode.HasValue("name"))
+                    continue;
+                string variantName = variantNode.GetValue("name");
+
+                // Display Name
+                string variantDisplayName = string.Empty; ;
+                if (variantNode.HasValue("displayName"))
+                    variantDisplayName = variantNode.GetValue("displayName");
+
+                // Primary Color
+                string variantPrimaryColor = string.Empty; ;
+                if (variantNode.HasValue("primaryColor"))
+                    variantPrimaryColor = variantNode.GetValue("primaryColor");
+
+                // Secondary Color
+                string variantSecondaryColor = string.Empty; ;
+                if (variantNode.HasValue("secondaryColor"))
+                    variantSecondaryColor = variantNode.GetValue("secondaryColor");
+
+                // Mass Fraction
+                float massFraction = 0;
+                if (variantNode.HasValue("massFraction"))
+                    float.TryParse(variantNode.GetValue("massFraction"), out massFraction);
+
+                // Cost Multiplier
+                float costMultiplier = 0;
+                if (variantNode.HasValue("costMultiplier"))
+                    float.TryParse(variantNode.GetValue("costMultiplier"), out costMultiplier);
+
+                MassFractionVariant massFractionVariant = new MassFractionVariant();
+                massFractionVariant.name = variantName;
+                massFractionVariant.displayName = variantDisplayName;
+                massFractionVariant.primaryColor = variantPrimaryColor;
+                massFractionVariant.secondaryColor = variantSecondaryColor;
+                massFractionVariant.massFraction = massFraction;
+                massFractionVariant.costMultiplier = costMultiplier;
+
+                massFractionVariants.Add(massFractionVariant);
+            }
+        }
+    }
+    #endregion
+
     [KSPModule("Omni Storage")]
-    public class WBIOmniStorage : PartModule, IOpsView, IPartCostModifier
+    public class WBIOmniStorage : PartModule, IOpsView, IPartCostModifier, IPartMassModifier
     {
         const string kKISResource = "KIS Inventory";
         const string kDefaultBlacklist = "GeoEnergy;wbiElectroPlasma;wbiCoreHeat;wbiAtmosphere;wbiCompressedAtmosphere;LabTime;ExposureTime;ScopeTime;SolarReports;SimulatorTime;GravityWaves;IntakeLqd;IntakeAir;StaticCharge;EVA Propellant;Plants;CoreSamples;MJPropellant;SOCSFuel";
@@ -128,9 +220,25 @@ namespace WBIResources
         /// </summary>
         [KSPField(isPersistant = true)]
         public float packedVolumeLimit = -1f;
+
+        /// <summary>
+        /// Name of the mass fraction variant to apply if we haven't selected a variant yet.
+        /// </summary>
+        [KSPField]
+        public string baseVariant;
+
+        /// <summary>
+        /// Index for the mass fraction variants.
+        /// </summary>
+        [KSPField(guiActiveEditor = true, isPersistant = true)]
+        [UI_VariantSelector(affectSymCounterparts = UI_Scene.All, controlEnabled = true, scene = UI_Scene.All)]
+        public int variantIndex = 0;
         #endregion
 
         #region Housekeeping
+        [KSPField(isPersistant = true)]
+        public float dryMassDelta = 0;
+
         public static Texture deleteIcon = null;
         public static Texture copyIcon = null;
         public static Texture pasteIcon = null;
@@ -160,6 +268,8 @@ namespace WBIResources
         private bool updateSymmetry;
         private bool synchronizeComboResources = true;
         private ConfigNode partConfigNode = null;
+        private List<OmniMassFraction> omniMassFractions = new List<OmniMassFraction>();
+        private float adjustedAmountRequired;
         #endregion
 
         #region Events
@@ -238,7 +348,7 @@ namespace WBIResources
                 adjustedVolume = inventoryAdjustedVolume - stockInventoryVolumeUpdate;
             }
 
-            recalculateMaxAmounts();
+            recalculateMaxAmountsV2();
 
             if (HighLogic.LoadedSceneIsEditor)
                 reconfigureStorage();
@@ -324,8 +434,31 @@ namespace WBIResources
             sortedResourceNames = resourceNames.OrderBy(q => q).ToList();
 
             //Load resource combos. Overrides first.
+            ConfigNode[] comboResourceNodes = GameDatabase.Instance.GetConfigNodes("OMNIRESOURCECOMBO");
             loadResourceCombos(getPartComboNodes());
-            loadResourceCombos(GameDatabase.Instance.GetConfigNodes("OMNIRESOURCECOMBO"));
+            loadResourceCombos(comboResourceNodes);
+
+            // Load mass fractions
+            ConfigNode[] massFractionNodes = GameDatabase.Instance.GetConfigNodes("OMNI_MASS_FRACTION");
+            foreach (ConfigNode fractionNode in massFractionNodes)
+            {
+                OmniMassFraction omniMassFraction = new OmniMassFraction(fractionNode);
+                omniMassFractions.Add(omniMassFraction);
+            }
+            // Fallback
+            if (omniMassFractions.Count == 0)
+            {
+                MassFractionVariant variant = new MassFractionVariant();
+                variant.costMultiplier = 1;
+                variant.massFraction = 0.111f;
+
+                OmniMassFraction massFraction = new OmniMassFraction(variant);
+                omniMassFractions.Add(massFraction);
+            }
+            omniMassFractions.Sort((leftItem, rightItem) => leftItem.maxVolume.CompareTo(rightItem.maxVolume));
+            setupVariants();
+            if (HighLogic.LoadedSceneIsEditor)
+                GameEvents.onEditorVariantApplied.Add(onVariantApplied);
 
             //Setup default resources if needed
             Debug.Log("[WBIOmniStorage] - OnStart called. resourceAmounts.Count: " + resourceAmounts.Count);
@@ -451,7 +584,7 @@ namespace WBIResources
             {
                 stockInventoryVolumeUpdate = update;
                 adjustedVolume = inventoryAdjustedVolume - stockInventoryVolumeUpdate;
-                recalculateMaxAmounts();
+                recalculateMaxAmountsV2();
             }
         }
 
@@ -487,8 +620,13 @@ namespace WBIResources
                 }
 
                 //Display label
+                definition = definitions[keys[index]];
+                displayName = definition.displayName;
+                if (string.IsNullOrEmpty(displayName))
+                    displayName = definition.name;
+                double resourceLiters = previewResources[keys[index]] * definition.volume;
                 GUILayout.BeginHorizontal();
-                GUILayout.Label("<color=white><b>" + displayName + ": </b>" + string.Format("{0:f2}U", previewResources[keys[index]]) + "</color>");
+                GUILayout.Label("<color=white><b>" + displayName + ": </b>" + string.Format("{0:f2}L", resourceLiters) + " / " + string.Format("{0:f2}U", previewResources[keys[index]]) + "</color>");
                 GUILayout.FlexibleSpace();
 
                 //Delete button
@@ -504,11 +642,11 @@ namespace WBIResources
                 }
 
                 //Slider to adjust max amount
-                float ratio = GUILayout.HorizontalSlider(previewRatios[resourceName], 0.01f, 1.0f);
+                float ratio = GUILayout.HorizontalSlider(previewRatios[resourceName], 0.0f, 1.0f);
                 if (ratio != previewRatios[resourceName])
                 {
                     previewRatios[resourceName] = ratio;
-                    updateMaxAmounts(resourceName);
+                    updateMaxAmountsV2(resourceName);
                 }
             }
             GUILayout.EndScrollView();
@@ -525,7 +663,7 @@ namespace WBIResources
                     previewResources.Remove(doomedResources[index]);
                     previewRatios.Remove(doomedResources[index]);
                 }
-                recalculateMaxAmounts();
+                recalculateMaxAmountsV2();
             }
         }
 
@@ -656,7 +794,7 @@ namespace WBIResources
 
                 //Update max amounts
                 foreach (string key in previewRatios.Keys)
-                    updateMaxAmounts(key);
+                    updateMaxAmountsV2(key);
 
                 //Finally, reconfigure storage
                 reconfigureStorage(updateSymmetry);
@@ -710,7 +848,7 @@ namespace WBIResources
                     }
 
                     //recalculate max amounts
-                    recalculateMaxAmounts();
+                    recalculateMaxAmountsV2();
                 }
             }
             GUILayout.EndScrollView();
@@ -907,47 +1045,6 @@ namespace WBIResources
 
             //Nothing to see here...
             return null;
-        }
-
-        protected void applyComboPatternRatios()
-        {
-            //Find a resource combo that matches our current resource set
-            Dictionary<string, ComboRatio> comboRatios = findComboPattern();
-            if (comboRatios == null)
-                return;
-
-            //Tally up the total units
-            string[] keys = comboRatios.Keys.ToArray();
-            double totalUnits = 0;
-            for (int index = 0; index < keys.Length; index++)
-                totalUnits += previewResources[keys[index]];
-
-            //Go through all the combo pattern ratios and adjust the preview units
-            ComboRatio comboRatio;
-            string resourceName;
-            for (int index = 0; index < keys.Length; index++)
-            {
-                resourceName = keys[index];
-                comboRatio = comboRatios[resourceName];
-                previewResources[keys[index]] = (totalUnits * comboRatio.ratio) * comboRatio.maxAmountMultiplier;
-            }
-        }
-
-        protected void updateResourceComboRatios(string updatedResource)
-        {
-            //Find a resource combo that matches our current resource set
-            Dictionary<string, ComboRatio> comboRatios = findComboPattern();
-            if (comboRatios == null)
-                return;
-            if (!comboRatios.ContainsKey(updatedResource))
-                return;
-            if (!synchronizeComboResources)
-                return;
-
-            float ratio = previewRatios[updatedResource];
-            string[] keys = comboRatios.Keys.ToArray();
-            for (int index = 0; index < keys.Length; index++)
-                previewRatios[keys[index]] = ratio;
         }
 
         protected ConfigNode getPartConfigNode()
@@ -1149,97 +1246,82 @@ namespace WBIResources
             }
         }
 
-        protected void updateMaxAmounts(string updatedResource)
+        protected void updateMaxAmountsV2(string updatedResource)
         {
-            float litersPerResource = 0;
-            string[] resourceNames = previewResources.Keys.ToArray();
-            string resourceName;
-            PartResourceDefinition definition;
-
-            //Don't adjust max amounts if we only have one resource.
-            if (resourceNames.Length == 1)
+            // See if we have a resource combo. If we do, then all the resources in the combo list need to adjust the ratio based on the slider.
+            Dictionary<string, ComboRatio> comboRatios = findComboPattern();
+            if (comboRatios != null && comboRatios.ContainsKey(updatedResource))
             {
-                previewRatios[updatedResource] = 1.0f;
-                return;
+                float ratio = previewRatios[updatedResource];
+                foreach (string key in comboRatios.Keys)
+                {
+                    if (previewRatios.ContainsKey(key))
+                    {
+                        previewRatios[key] = ratio;
+                    }
+                }
             }
 
-            //Update ratios for resource combos
-            updateResourceComboRatios(updatedResource);
+            // Now, recalcuate the max amounts.
+            recalculateMaxAmountsV2();
+        }
 
-            //Determine the number of liters per resource
-            litersPerResource = adjustedVolume / resourceNames.Length;
+        protected void recalculateMaxAmountsV2()
+        {
+            string[] resourceNames = previewResources.Keys.ToArray();
+            PartResourceDefinition definition;
+            double scalingFactor; // Different resources have different volumes. LH2 has a volume of 1 liter per unit, while Oxidizer has a volume of 5 liters per unit.
 
-            //Calculate liters based on current ratios
-            float totalLitersAllocated = 0.0f;
-            for (int index = 0; index < resourceNames.Length; index++)
-                totalLitersAllocated += litersPerResource * previewRatios[resourceNames[index]];
+            // Different resources have different volumes. LH2 has a volume of 1 liter per unit, while Oxidizer has a volume of 5 liters per unit.
+            // To normalize all the different resources, we need to compute a scaling factor.
+            // scalingFactor = adjustedVolume / sum(resourceComboRatio * resourceVolume)
+            // Note: if the desired resources don't have a Resource Combo, then resourceComboRatio = 1. Otherwise, it's the ratio specified in the Resource Combo.
+            // To get the units per resource, multiply resourceComboRatio by scalingFactor.
             
-            //From the remaining volume, calculate the extra to give to each resource
-            float litersDelta = (adjustedVolume - totalLitersAllocated) / resourceNames.Length;
+            // First, get the combo pattern, if any.
+            Dictionary<string, ComboRatio> comboRatios = findComboPattern();
+            if (comboRatios == null)
+                comboRatios = new Dictionary<string, ComboRatio>();
 
-            //Update max amounts
-            for (int index = 0; index < resourceNames.Length; index++)
+            string[] previewResourceKeys = previewResources.Keys.ToArray();
+            double resourceComboRatio;
+            double totalComboRatioVolumes = 0f;
+            Dictionary<string, double> normalizedComboRatios = new Dictionary<string, double>();
+            foreach(string key in previewResourceKeys)
             {
-                resourceName = resourceNames[index];
+                // Get the resource definition
+                definition = definitions[key];
 
-                //Get the resource definition
-                definition = definitions[resourceName];
-
-                //Calculate the liters
-                previewResources[resourceName] = (litersPerResource * previewRatios[resourceName]) + litersDelta;
-
-                //Account for units per liter
-                if (resourceName != kKISResource)
-                    previewResources[resourceName] = (previewResources[resourceName] / definition.volume) * getMaxAmountMultiplier(resourceName);
-            }
-
-            //Adjust units to account for resource combos.
-            applyComboPatternRatios();
-        }
-
-        protected void recalculateMaxAmounts()
-        {
-            float litersPerResource = 0;
-            string[] resourceNames = previewResources.Keys.ToArray();
-            string resourceName;
-            PartResourceDefinition definition;
-
-            //Determine the number of liters per resource
-            litersPerResource = resourceNames.Length;
-            litersPerResource = adjustedVolume / litersPerResource;
-
-            //The max number of units for a resource depends upon the resouce's volume in liters per unit.
-            //We'll need to get the definition for each resource and set max amount accordingly.
-            previewRatios.Clear();
-            for (int index = 0; index < resourceNames.Length; index++)
-            {
-                resourceName = resourceNames[index];
-
-                if (resourceName == kKISResource)
-                {
-                    //Set max amount
-                    previewResources[resourceName] = litersPerResource;
-
-                    //Set ratio
-                    previewRatios.Add(resourceName, 1.0f);
-                }
+                // Determine resourceComboRatio
+                if(comboRatios.ContainsKey(key) && previewRatios.ContainsKey(key))
+                    resourceComboRatio = comboRatios[key].ratio * previewRatios[key];
+                else if (comboRatios.ContainsKey(key))
+                    resourceComboRatio = comboRatios[key].ratio;
+                else if (previewRatios.ContainsKey(key))
+                    resourceComboRatio = previewRatios[key];
                 else
-                {
-                    //Get the resource definition
-                    definition = definitions[resourceName];
+                    resourceComboRatio = 1f;
+                normalizedComboRatios.Add(key, resourceComboRatio);
 
-                    //Set max amount
-                    previewResources[resourceName] = (litersPerResource / definition.volume) * getMaxAmountMultiplier(resourceName);
-
-                    //Set ratio
-                    previewRatios.Add(resourceName, 1.0f);
-                }
+                // Update the sum of all the combo ratios muliplied by their resource volumes.
+                totalComboRatioVolumes += resourceComboRatio * definition.volume;
             }
 
-            //Adjust units to account for resource combos.
-            applyComboPatternRatios();
-        }
+            // Calculate the scaling factor
+            if (totalComboRatioVolumes <= 0.00001)
+                totalComboRatioVolumes = 1;
+            scalingFactor = adjustedVolume / totalComboRatioVolumes;
 
+            // Now we can calculate the max amounts
+            foreach (string key in previewResourceKeys)
+            {
+                previewResources[key] = scalingFactor * normalizedComboRatios[key];
+
+                // Account for max amount multiplier.
+                if (comboRatios.ContainsKey(key))
+                    previewResources[key] *= comboRatios[key].maxAmountMultiplier;
+            }
+        }
 
         protected void addRestrictedResources()
         {
@@ -1292,6 +1374,9 @@ namespace WBIResources
                         symmetryStorage.previewResources.Add(key, previewResources[key]);
                         symmetryStorage.previewRatios.Add(key, this.previewRatios[key]);
                     }
+
+                    symmetryStorage.variantIndex = variantIndex;
+                    symmetryStorage.dryMassDelta = dryMassDelta;
 
                     symmetryStorage.reconfigureStorage(false);
                 }
@@ -1420,12 +1505,12 @@ namespace WBIResources
             //If we have a switcher, tell it to pay the cost. It might be able to ask resource distributors.
             if (switcher != null)
             {
-                switcher.payForReconfigure(requiredResource, requiredAmount);
+                switcher.payForReconfigure(requiredResource, adjustedAmountRequired);
                 return;
             }
 
             //We have to pay for it ourselves.
-            this.part.RequestResource(requiredResource, requiredAmount, ResourceFlowMode.STAGE_PRIORITY_FLOW);
+            this.part.RequestResource(requiredResource, adjustedAmountRequired, ResourceFlowMode.STAGE_PRIORITY_FLOW);
         }
 
         protected bool hasSufficientSkill()
@@ -1479,33 +1564,99 @@ namespace WBIResources
 
         protected virtual bool canAffordReconfigure()
         {
+            if (!HighLogic.LoadedSceneIsFlight)
+                return true;
             if (string.IsNullOrEmpty(requiredResource))
                 return true;
             if (!WBIResourcesSettings.PayToReconfigure)
                 return true;
+            if (omniMassFractions.Count == 0)
+                return true;
 
             if (switcher != null)
             {
-                //If we're inflatable and not inflated then we're done.
+                // If we're inflatable and not inflated then we're done.
                 if (switcher.isInflatable && !switcher.isDeployed)
                     return true;
 
-                //Ask the switcher if we can afford it. It might be able to ask distributed resource containers...
+                // Ask the switcher if we can afford it. It might be able to ask distributed resource containers...
                 return switcher.canAffordResource(requiredResource, requiredAmount);
             }
 
-            //Check the available amount of the resource.
-            double amountAvailable = GetTotalResourceAmount(requiredResource, this.part.vessel);
-            if (amountAvailable >= requiredAmount)
-                return true;
-
-            //Can't afford it.
+            // Tanks have a flat fee for converting a tank, represented by requiredAmount.
+            // With the introduction of adjusted dry mass, the dry mass fraction changes based on the resource combo held in the tank.
+            // Since Hydrolox tanks can be lighter than LFO tanks, when you field-convert a Hydrolox tank to an LFO tank, you need to add mass to support the new propellants.
+            // So if you need to add mass, you need to pay for it. Otherwise, you strip mass- but don't have to pay for it.
             PartResourceDefinitionList definitions = PartResourceLibrary.Instance.resourceDefinitions;
             PartResourceDefinition resourceDef = definitions[requiredResource];
+
+            // Compute current dry mass first
+            float massChange = GetModuleMass(part.prefabMass, ModifierStagingSituation.CURRENT);
+            float currentDryMass = part.prefabMass + massChange;
+
+            // Compute the preview resource mass based on the preview resources.
+            double previewResourceMass = 0;
+            foreach (string resourceName in previewResources.Keys)
+            {
+                PartResourceDefinition definition = definitions[resourceName];
+                previewResourceMass += definition.density * previewResources[resourceName];
+            }
+
+            // Compute resource volume & get the mass fraction set & preview mass fraction
+            double resourceVolume = getPreviewResourcesVolume();
+            OmniMassFraction omniMassFractionSet = getOmniMassFraction(resourceVolume);
+            float previewDryMassFraction = omniMassFractionSet.massFractionVariants[variantIndex].massFraction;
+
+            // Compute the preview dry mass
+            float previewDryMass = (float)previewResourceMass * (previewDryMassFraction / (1 - previewDryMassFraction));
+
+            // If we need to add mass then compute the additional amount of required resource
+            adjustedAmountRequired = requiredAmount;
+            if (previewDryMass > currentDryMass)
+            {
+                float massRequired = previewDryMass - currentDryMass;
+                float unitsRequired = massRequired / resourceDef.density;
+                adjustedAmountRequired += unitsRequired;
+            }
+
+            // Check the available amount of the resource.
+            double amountAvailable = GetTotalResourceAmount(requiredResource, this.part.vessel);
+            if (amountAvailable >= adjustedAmountRequired)
+                return true;
+
+            // Can't afford it.
             ScreenMessages.PostScreenMessage("Insufficient " + resourceDef.displayName + " to reconfigure the converter.");
             return false;
         }
-        
+              
+        private OmniMassFraction getOmniMassFraction(double volume)
+        {
+            // Find the OmniMassFraction whose maxVolume matches the supplied volume the closest.
+            // EX: We have two OmniMassFractions. One has a maxVolume if 4000 liters, and the second one has a maxVolume of double.MaxValue.
+            // If volume is 2000, then the first OmniMassFraction in the sorted list should be returned. If the volume is 40000, then the second one should be returned.
+            foreach (OmniMassFraction omniFraction in omniMassFractions)
+            {
+                if (volume <= omniFraction.maxVolume)
+                    return omniFraction;
+            }
+
+            return omniMassFractions.Last();
+        }
+
+        private double getPreviewResourcesVolume()
+        {
+            double totalVolume = 0;
+            PartResourceDefinitionList definitions = PartResourceLibrary.Instance.resourceDefinitions;
+            foreach (string resourceName in previewResources.Keys)
+            {
+                PartResourceDefinition resourceDef = definitions[resourceName];
+
+                totalVolume += resourceDef.volume * previewResources[resourceName];
+            }
+
+            return totalVolume;
+        }
+
         protected string getRequiredTraits()
         {
             string[] traits = GetTraitsWithEffect(reconfigureSkill);
@@ -1639,17 +1790,188 @@ namespace WBIResources
 
             return traits.ToArray();
         }
+
+        private string buildPartResourceKey()
+        {
+            List<string> resourceNames = new List<string>();
+            foreach (PartResource resource in part.Resources)
+            {
+                resourceNames.Add(resource.resourceName);
+            }
+            resourceNames.Sort();
+
+            StringBuilder builder = new StringBuilder();
+            foreach (string resourceName in resourceNames)
+                builder.Append(resourceName);
+
+            return builder.ToString();
+        }
+
+        private OmniMassFraction getMassFractionSetFromPartResources()
+        {
+            PartResourceDefinitionList definitions = PartResourceLibrary.Instance.resourceDefinitions;
+            double totalVolume = 0;
+            foreach (PartResource resource in part.Resources)
+            {
+                if (resource.resourceName == "ElectricCharge" || resourceBlacklist.Contains(resource.resourceName))
+                    continue;
+                PartResourceDefinition definition = definitions[resource.resourceName];
+                totalVolume += definition.volume * resource.maxAmount;
+            }
+            OmniMassFraction omniMassFractionSet = getOmniMassFraction(totalVolume);
+
+            return omniMassFractionSet;
+        }
         #endregion
 
         #region IPartCostModifier
         public float GetModuleCost(float defaultCost, ModifierStagingSituation sit)
         {
-            return (WBIOmniManager.Instance.GetOriginalResourceCost(this.part) * -1f) + GetResourceCost(this.part, true);
-        }
+            // NOTE: defaultCost is the base price of the part. Whatever we return will be added to the base price.
+            // That base price includes the cost of the part's resources.
+            // Ex: A part costs 60k. if a PartVariant's cost is 90k then the part's coast jumps to 150k.
 
+            if (!HighLogic.LoadedSceneIsFlight && !HighLogic.LoadedSceneIsEditor)
+                return 0;
+            if (omniMassFractions.Count == 0)
+                return 0;
+
+            // Step 1:
+            // Compute the dry tank cost in the stock configuration
+            float defaultResourceCost = WBIOmniManager.Instance.GetOriginalResourceCost(part);
+            float defaultDryMassCost = defaultCost - defaultResourceCost;
+
+            // Step 2:
+            // Compute the cost of the newly selected resources
+            float updatedResourceCost = GetResourceCost(part, true);
+
+            // Step 3:
+            // Compute the new dry mass based on target mass fraction
+            OmniMassFraction omniMassFractionSet = getMassFractionSetFromPartResources();
+            float resourceMass = part.GetResourceMass();
+            float massFraction = omniMassFractionSet.massFractionVariants[variantIndex].massFraction;
+            float updatedDryMass = (massFraction / (1 - massFraction)) * resourceMass;
+
+            // Step 4:
+            // Scale dry mass cost proportionally to structural mass change
+            float dryMassScaleFactor = updatedDryMass / part.prefabMass;
+            float scaledDryMassCost = defaultDryMassCost * dryMassScaleFactor;
+
+            // Step 5:
+            // Apply structural complexity premium
+            // (Lightweight tanks cost more to manufacture)
+            float structuralPremiumCost = defaultDryMassCost * (omniMassFractionSet.massFractionVariants[variantIndex].costMultiplier - 1.0f);
+            float updatedDryMassCost = scaledDryMassCost + structuralPremiumCost;
+
+            // Step 6:
+            // Compute total updated part cost
+            float updatedTotalCost = updatedDryMassCost + updatedResourceCost;
+
+            // Step 7:
+            // Return only the delta from default cost
+            float moduleCostDelta = updatedTotalCost - defaultCost;
+            return moduleCostDelta;
+        }
         public ModifierChangeWhen GetModuleCostChangeWhen()
         {
             return ModifierChangeWhen.FIXED;
+        }
+        #endregion
+
+        #region IPartMassModifier
+        public float GetModuleMass(float defaultMass, ModifierStagingSituation sit)
+        {
+            if (!HighLogic.LoadedSceneIsFlight && !HighLogic.LoadedSceneIsEditor)
+                return 0;
+            if (omniMassFractions.Count == 0)
+                return 0;
+
+            // Find the mass fraction set
+            OmniMassFraction omniMassFractionSet = getMassFractionSetFromPartResources();
+
+            // Get the total resource mass.
+            float resourceMass = part.GetResourceMass();
+
+            // Next, compute the dry mass based on the desired mass fraction.
+            float massFraction = omniMassFractionSet.massFractionVariants[variantIndex].massFraction;
+            float dryMass = (massFraction / (1 - massFraction)) * resourceMass;
+
+            float massRatio = dryMass / defaultMass;
+            if (Mathf.Abs(massRatio - 1.0f) <= 0.005f)
+                return 0;
+
+            // Return the difference between the defaultMass (which is the base dry mass of the part) and the computed dry mass.
+            dryMassDelta = dryMass - defaultMass;
+
+            return dryMassDelta;
+        }
+
+        public ModifierChangeWhen GetModuleMassChangeWhen()
+        {
+            return ModifierChangeWhen.FIXED;
+        }
+        #endregion
+
+        #region Variants
+        private void setupVariants()
+        {
+            ConfigNode node = getPartConfigNode();
+            if (node == null)
+                return;
+
+            OmniMassFraction omniMassFraction = getMassFractionSetFromPartResources();
+            if (omniMassFraction.massFractionVariants.Count <= 1)
+            {
+                Fields["variantIndex"].guiActiveEditor = false;
+                Fields["variantIndex"].guiActive = false;
+                return;
+            }
+
+            UI_VariantSelector variantSelector = getVariantSelector();
+            variantSelector.onFieldChanged += new Callback<BaseField, object>(this.onVariantChanged);
+
+            // Setup variant list
+            variantSelector.variants = new List<PartVariant>();
+            foreach (MassFractionVariant massFractionVariant in omniMassFraction.massFractionVariants)
+            {
+                string displayName = string.IsNullOrEmpty(massFractionVariant.displayName) ? Localizer.Format(massFractionVariant.name) : Localizer.Format(massFractionVariant.displayName);
+                PartVariant variant = new PartVariant(massFractionVariant.name, displayName, null);
+
+                if (!string.IsNullOrEmpty(massFractionVariant.primaryColor))
+                    variant.PrimaryColor = massFractionVariant.primaryColor;
+
+                if (!string.IsNullOrEmpty(massFractionVariant.secondaryColor))
+                    variant.SecondaryColor = massFractionVariant.secondaryColor;
+
+                variantSelector.variants.Add(variant);
+            }
+        }
+
+        private UI_VariantSelector getVariantSelector()
+        {
+            UI_VariantSelector variantSelector = null;
+            int count = Fields.Count;
+            string fieldNames = string.Empty;
+            for (int index = 0; index < count; index++)
+                fieldNames += Fields[index].name + ";";
+
+            // Setup variant selector
+            if (HighLogic.LoadedSceneIsFlight)
+                variantSelector = Fields["variantIndex"].uiControlFlight as UI_VariantSelector;
+            else //if (HighLogic.LoadedSceneIsEditor)
+                variantSelector = Fields["variantIndex"].uiControlEditor as UI_VariantSelector;
+
+            return variantSelector;
+        }
+
+        private void onVariantChanged(BaseField baseField, object obj)
+        {
+        }
+
+        private void onVariantApplied(Part variantPart, PartVariant variant)
+        {
+            if (variantPart != part)
+                return;
         }
         #endregion
     }

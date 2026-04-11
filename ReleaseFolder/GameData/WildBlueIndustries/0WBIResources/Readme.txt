@@ -9,23 +9,29 @@ It should look like:
 
 GameData/WildBlueIndustries/WBIResources
 
----IMPORTANT NOTES---
+---CHANGES---
 
-* If you have Community Resources Pack and Classic Stock Resources installed, then the OmniConverter templates will pick up the CRP resources, not the Classic Stock resources.
+- When reconfiguring tanks, WBIOmniStorage will adjust the dry mass of the tank to 6.9% for tanks <= 4,000 liters (800 units), and 11.1% for tanks > 4,000 liters. That matches stock tank configurations, and ensures that players don't pay a mass penalty when configuring tanks with cryogenic propellants.
+- You can select a lighter tank structure in the VAB/SPH to save on dry mass at the expense of higher dry mass cost.
+NOTE: If reconfigured in the field, and the dry mass of the tank increases due to the updated resources that the tank will store, then it'll cost more in resources to refit the tank.
+
+- Fixed issue in WBIOmniStorage that incorrectly calculated the number of resource units per resource when an OMNIRESOURCECOMBO was applied.
+
+---IMPORTANT NOTES---
 
 * The Extras folder contains some extra patches such as a patch to change all LFO & MonoPropellant tanks into OmniStorage tanks.
 
 ---LICENSE---
 Some resource definitions courtesy of Community Resource Pack. License: CC-BY-NC-SA 4.0
 
-Art Assets, including .mu, .mbm, and .dds files are copyright 2014-2016 by Michael Billard, All Rights Reserved.
+Art Assets, including .mu, .mbm, and .dds files are copyright 2014-2026 by Michael Billard, All Rights Reserved.
 
 Wild Blue Industries is trademarked by Michael Billard. All rights reserved.
 Note that Wild Blue Industries is a ficticious entity 
 created for entertainment purposes. It is in no way meant to represent a real entity.
 Any similarity to a real entity is purely coincidental.
 
-Source code copyright 2014-2025 by Michael Billard (Angel-125)
+Source code copyright 2014-2022 by Michael Billard (Angel-125)
 
     This source code is free software: you can redistribute it and/or modify
     it under the terms of the GNU General Public License as published by
