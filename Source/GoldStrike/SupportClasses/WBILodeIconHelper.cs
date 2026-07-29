@@ -38,6 +38,11 @@ namespace WBIResources
 
         public void OnCustomWaypointLoad(GameEvents.FromToAction<Waypoint, ConfigNode> fta)
         {
+            if (fta.from == null)
+            {
+                Debug.Log("[WBILodeIconHelper] - Either fta or fta.from is nill, cannot handle OnCustomWaypointLoad");
+                return;
+            }
             Waypoint waypoint = fta.from;
             ConfigNode node = fta.to;
             string location = string.Format("Lon: {0:f2} Lat: {1:f2}", waypoint.longitude, waypoint.latitude);
