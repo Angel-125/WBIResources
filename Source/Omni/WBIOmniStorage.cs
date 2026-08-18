@@ -371,6 +371,11 @@ namespace WBIResources
         {
             base.OnLoad(node);
             loadOmniResourceConfigs();
+
+            // OnLoad normally runs before OnStart initializes the resource library, but it can
+            // also be called later when a module is reloaded.
+            if (definitions != null)
+                removeUndefinedResources();
         }
 
         public override void OnSave(ConfigNode node)
@@ -428,6 +433,7 @@ namespace WBIResources
 
             //Get our resource definitions.
             definitions = PartResourceLibrary.Instance.resourceDefinitions;
+            removeUndefinedResources();
             List<String> resourceNames = new List<string>();
             foreach (PartResourceDefinition def in definitions)
                 resourceNames.Add(def.name);
@@ -600,31 +606,36 @@ namespace WBIResources
             PartResourceDefinition definition;
             for (int index = 0; index < keys.Length; index++)
             {
+                double resourceUnitVolume;
+
                 //First item is the KIS storage if the part has one.
                 if (keys[index] == kKISResource)
                 {
                     displayName = kKISResource;
                     resourceName = kKISResource;
+                    resourceUnitVolume = 1;
                     if (isComboResource(kKISResource))
                         displayName += "*";
                 }
                 else
                 {
                     definition = definitions[keys[index]];
+                    if (definition == null)
+                    {
+                        doomedResources.Add(keys[index]);
+                        continue;
+                    }
                     displayName = definition.displayName;
                     if (string.IsNullOrEmpty(displayName))
                         displayName = definition.name;
                     resourceName = definition.name;
+                    resourceUnitVolume = definition.volume;
                     if (isComboResource(definition.name))
                         displayName += "*";
                 }
 
                 //Display label
-                definition = definitions[keys[index]];
-                displayName = definition.displayName;
-                if (string.IsNullOrEmpty(displayName))
-                    displayName = definition.name;
-                double resourceLiters = previewResources[keys[index]] * definition.volume;
+                double resourceLiters = previewResources[keys[index]] * resourceUnitVolume;
                 GUILayout.BeginHorizontal();
                 GUILayout.Label("<color=white><b>" + displayName + ": </b>" + string.Format("{0:f2}L", resourceLiters) + " / " + string.Format("{0:f2}U", previewResources[keys[index]]) + "</color>");
                 GUILayout.FlexibleSpace();
@@ -856,6 +867,31 @@ namespace WBIResources
         #endregion
 
         #region Helpers
+        /// <summary>
+        /// Removes persisted resources whose definitions are no longer installed. This can
+        /// happen when an optional resource mod is disabled after a craft was saved.
+        /// </summary>
+        protected void removeUndefinedResources()
+        {
+            if (definitions == null)
+                return;
+
+            HashSet<string> resourceNames = new HashSet<string>(resourceAmounts.Keys);
+            resourceNames.UnionWith(previewResources.Keys);
+            resourceNames.UnionWith(previewRatios.Keys);
+
+            foreach (string resourceName in resourceNames)
+            {
+                if (resourceName == kKISResource || definitions[resourceName] != null)
+                    continue;
+
+                Debug.LogWarning("[WBIOmniStorage] - Removing undefined resource from storage configuration: " + resourceName);
+                resourceAmounts.Remove(resourceName);
+                previewResources.Remove(resourceName);
+                previewRatios.Remove(resourceName);
+            }
+        }
+
         protected void loadOmniResourceConfigs()
         {
             if (!string.IsNullOrEmpty(omniResources))
@@ -1304,7 +1340,7 @@ namespace WBIResources
                 normalizedComboRatios.Add(key, resourceComboRatio);
 
                 // Update the sum of all the combo ratios muliplied by their resource volumes.
-                totalComboRatioVolumes += resourceComboRatio * definition.volume;
+                totalComboRatioVolumes += resourceComboRatio * (key == kKISResource ? 1 : definition.volume);
             }
 
             // Calculate the scaling factor
@@ -1598,6 +1634,10 @@ namespace WBIResources
             double previewResourceMass = 0;
             foreach (string resourceName in previewResources.Keys)
             {
+                // KIS inventory is a volume allocation rather than a PartResource.
+                if (resourceName == kKISResource)
+                    continue;
+
                 PartResourceDefinition definition = definitions[resourceName];
                 previewResourceMass += definition.density * previewResources[resourceName];
             }
@@ -1649,6 +1689,12 @@ namespace WBIResources
             PartResourceDefinitionList definitions = PartResourceLibrary.Instance.resourceDefinitions;
             foreach (string resourceName in previewResources.Keys)
             {
+                if (resourceName == kKISResource)
+                {
+                    totalVolume += previewResources[resourceName];
+                    continue;
+                }
+
                 PartResourceDefinition resourceDef = definitions[resourceName];
 
                 totalVolume += resourceDef.volume * previewResources[resourceName];
