@@ -360,6 +360,8 @@ namespace WBIResources
         #region Overrides
         public void OnDestroy()
         {
+            GameEvents.onEditorVariantApplied.Remove(onVariantApplied);
+        
             if (opsView != null)
             {
                 opsView.SetVisible(false);
