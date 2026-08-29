@@ -63,3 +63,13 @@ Temporary Items
 /Fonts/
 /SoundEffects/
 /Notes/
+
+# Claude added
+.vs/
+bin/
+obj/
+packages/
+*.user
+*.suo
+*.slnx
+
