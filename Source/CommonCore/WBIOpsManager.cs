@@ -64,7 +64,7 @@ namespace WBIResources
             Events["ReconfigureStorage"].active = getAssembledState();
         }
 
-        public void Destroy()
+        public void OnDestroy()
         {
         }
 
