@@ -148,9 +148,9 @@
     <Compile Include="Utils\Utils.cs" />
     <Compile Include="Omni\WBIAstroTank.cs" />
     <Compile Include="Omni\WBIBackgroundConverter.cs" />
-    <Compile Include="Omni\WBIModuleResourceHarvester.cs" />
+    <Compile Include="Omni\WBIOmniHarvester.cs" />
     <Compile Include="Omni\WBIOmniConverter.cs" />
-    <Compile Include="Omni\WBIOmniManager.cs" />
+    <Compile Include="Omni\WBIOmniScenario.cs" />
     <Compile Include="Omni\WBIOmniStorage.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
     <Compile Include="SettingsAndScenario\WBIResourcesSettings.cs" />

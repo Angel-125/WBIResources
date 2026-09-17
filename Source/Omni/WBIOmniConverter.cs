@@ -369,7 +369,7 @@ namespace WBIResources
             //Create unique ID if needed
             if (string.IsNullOrEmpty(ID) || ID == "none")
                 ID = Guid.NewGuid().ToString();
-            else if (HighLogic.LoadedSceneIsEditor && WBIOmniManager.Instance.WasRecentlyCreated(this.part))
+            else if (HighLogic.LoadedSceneIsEditor && WBIOmniScenario.Instance.WasRecentlyCreated(this.part))
                 ResetSettings();
 
             //Setup the template manager if needed.

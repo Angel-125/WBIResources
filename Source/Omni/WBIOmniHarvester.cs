@@ -21,8 +21,8 @@ THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLI
 */
 namespace WBIResources
 {
-    [KSPModule("Resource Harvester")]
-    public class WBIModuleResourceHarvester: ModuleResourceHarvester
+    [KSPModule("Omni Harvester")]
+    public class WBIOmniHarvester: ModuleResourceHarvester
     {
         #region Fields
         [KSPField]
@@ -40,9 +40,6 @@ namespace WBIResources
         /// </summary>
         [KSPField]
         public string drillAnimationName = string.Empty;
-
-        [KSPField(isPersistant = true)]
-        public string drillResources = string.Empty;
 
         /// <summary>
         /// List of anomalies that the converter must be next to in order to function.
@@ -73,7 +70,6 @@ namespace WBIResources
         List<HarvestTypes> harvestTypeList;
         HarvestTypes currentHarvestType;
         protected HarvestView infoView;
-        protected FixedUpdateHelper fixedUpdateHelper;
         #endregion
 
         #region events
@@ -113,29 +109,9 @@ namespace WBIResources
             return info.ToString();
         }
 
-        public override void OnSave(ConfigNode node)
-        {
-            StringBuilder resourceBuilder = new StringBuilder();
-            if (resourceRatios == null || outputRatios == null || resourceBuilder == null)
-                return;
-
-            //Add our resource ratios to the output list
-            int ratioCount = resourceRatios.Count;
-            for (int index = 0; index < ratioCount; index++)
-                resourceBuilder.Append(resourceRatios[index].ResourceName + "," + resourceRatios[index].Ratio + ";");
-
-            //Add any supplementary outputs
-            ratioCount = outputRatios.Count;
-            for (int index = 0; index < ratioCount; index++)
-                resourceBuilder.Append(outputRatios[index].ResourceName + "," + outputRatios[index].Ratio + ";");
-
-            drillResources = resourceBuilder.ToString();
-            base.OnSave(node);
-        }
-
         public override void OnStart(StartState state)
         {
-            Debug.Log("[WBIModuleResourceHarvester] - OnStart called.");
+            Debug.Log("[WBIOmniHarvester] - OnStart called.");
             base.OnStart(state);
 
             //Setup info view
@@ -284,10 +260,10 @@ namespace WBIResources
         #region Helpers
         void addAnomalyResources(string anomalyName, double harvestRate)
         {
-            if (!WBIOmniManager.Instance.anomalyResources.ContainsKey(anomalyName))
+            if (!WBIOmniScenario.Instance.anomalyResources.ContainsKey(anomalyName))
                 return;
 
-            Dictionary<string, AnomalyResource> anomalyResources = WBIOmniManager.Instance.anomalyResources[anomalyName];
+            Dictionary<string, AnomalyResource> anomalyResources = WBIOmniScenario.Instance.anomalyResources[anomalyName];
             string[] keys = anomalyResources.Keys.ToArray();
 
             AnomalyResource resource;

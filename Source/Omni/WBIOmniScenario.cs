@@ -92,14 +92,14 @@ namespace WBIResources
     /// but other types of converters also benefit.
     /// </summary>
     [KSPScenario(ScenarioCreationOptions.AddToAllGames, GameScenes.SPACECENTER, GameScenes.EDITOR, GameScenes.FLIGHT, GameScenes.TRACKSTATION)]
-    public class WBIOmniManager : ScenarioModule
+    public class WBIOmniScenario : ScenarioModule
     {
         #region Constants
         public double secondsPerCycle = 3600;
         #endregion
 
         #region Housekeeping
-        public static WBIOmniManager Instance;
+        public static WBIOmniScenario Instance;
 
         public bool debugMode = false;
         public double cycleStartTime;
@@ -112,20 +112,26 @@ namespace WBIResources
         #region Background processing
         public void FixedUpdate()
         {
-            if (cycleStartTime == 0f)
+            double currentTime = Planetarium.GetUniversalTime();
+            if (cycleStartTime <= 0f)
             {
-                cycleStartTime = Planetarium.GetUniversalTime();
+                cycleStartTime = currentTime;
                 return;
             }
-            double elapsedTime = Planetarium.GetUniversalTime() - cycleStartTime;
-            elapsedTime = secondsPerCycle;
+
+            double elapsedTime = currentTime - cycleStartTime;
             if (elapsedTime < secondsPerCycle)
                 return;
+
+            // Reset the timer even when there are no converters. Otherwise a newly
+            // activated converter inherits all the elapsed time since the last one ran.
+            cycleStartTime = currentTime;
+
+            // Rebuild the wrappers each cycle so newly unloaded/activated converters
+            // are discovered and transient missing-resource/full-container flags reset.
+            refreshBackgroundConverters();
             if (backgroundConverters == null || backgroundConverters.Count == 0)
                 return;
-
-            //Reset the timer
-            cycleStartTime = Planetarium.GetUniversalTime();
 
             Vessel vessel;
             int count = FlightGlobals.Vessels.Count;
@@ -202,17 +208,17 @@ namespace WBIResources
                 float cost = originalResourceCosts[part.partInfo.name];
 
                 if (debugMode)
-                    Debug.Log(string.Format("[WBIOmniManager] original resource cost: {0:n2}", cost));
+                    Debug.Log(string.Format("[WBIOmniScenario] original resource cost: {0:n2}", cost));
 
                 return cost;
             }
 
             if (debugMode)
-                Debug.Log(string.Format("[WBIOmniManager] {0:s} part cost: {1:n2}", part.partInfo.name, part.partInfo.cost));
+                Debug.Log(string.Format("[WBIOmniScenario] {0:s} part cost: {1:n2}", part.partInfo.name, part.partInfo.cost));
 
             float resourceCost = ResourceHelper.GetResourceCost(part, true);
             if (debugMode)
-                Debug.Log(string.Format("[WBIOmniManager] original resource cost: {0:n2}", resourceCost));
+                Debug.Log(string.Format("[WBIOmniScenario] original resource cost: {0:n2}", resourceCost));
 
             originalResourceCosts.Add(part.partInfo.name, resourceCost);
             return resourceCost;
@@ -230,7 +236,7 @@ namespace WBIResources
         internal void Start()
         {
             Instance = this;
-            backgroundConverters = WBIBackgroundConverter.GetBackgroundConverters();
+            refreshBackgroundConverters();
         }
 
         public override void OnAwake()
@@ -251,6 +257,9 @@ namespace WBIResources
             //Housekeeping
             double.TryParse(node.GetValue("cycleStartTime"), out cycleStartTime);
 
+            if (originalResourceCosts == null)
+                originalResourceCosts = new Dictionary<string, float>();
+
             if (node.HasNode("OriginalResourceCost"))
             {
                 ConfigNode[] costNodes = node.GetNodes("OriginalResourceCost");
@@ -268,27 +277,12 @@ namespace WBIResources
                 }
             }
 
-            // Anomaly resources
+            // Load current definitions first, then overlay saved depletion state.
+            // This preserves existing games while still admitting newly installed
+            // anomaly-resource definitions.
             anomalyResources = new Dictionary<string, Dictionary<string, AnomalyResource>>();
-            Dictionary<string, AnomalyResource> resources;
-            ConfigNode[] resourceNodes = GameDatabase.Instance.GetConfigNodes("ANOMALY_RESOURCE");
-            AnomalyResource anomalyResource;
-            for (int index = 0; index < resourceNodes.Length; index++)
-            {
-                anomalyResource = new AnomalyResource(resourceNodes[index]);
-
-                if (!anomalyResources.ContainsKey(anomalyResource.name))
-                {
-                    resources = new Dictionary<string, AnomalyResource>();
-                    anomalyResources.Add(anomalyResource.name, resources);
-                }
-
-                resources = anomalyResources[anomalyResource.name];
-                if (!resources.ContainsKey(anomalyResource.resourceName))
-                {
-                    resources.Add(anomalyResource.resourceName, anomalyResource);
-                }
-            }
+            loadAnomalyResources(GameDatabase.Instance.GetConfigNodes("ANOMALY_RESOURCE"), false);
+            loadAnomalyResources(node.GetNodes("ANOMALY_RESOURCE"), true);
         }
 
         public override void OnSave(ConfigNode node)
@@ -299,8 +293,8 @@ namespace WBIResources
             foreach (string key in originalResourceCosts.Keys)
             {
                 ConfigNode costNode = new ConfigNode("OriginalResourceCost");
-                node.SetValue("partName", key);
-                node.SetValue("cost", originalResourceCosts[key].ToString());
+                costNode.AddValue("partName", key);
+                costNode.AddValue("cost", originalResourceCosts[key].ToString());
                 node.AddNode(costNode);
             }
 
@@ -323,16 +317,20 @@ namespace WBIResources
             GameEvents.onVesselDestroy.Remove(onVesselDestroy);
             GameEvents.onVesselChange.Remove(onVesselChange);
             GameEvents.onEditorPartEvent.Remove(onEditorPartEvent);
+
+            if (Instance == this)
+                Instance = null;
         }
 
         protected void onVesselChange(Vessel vessel)
         {
-
+            refreshBackgroundConverters();
         }
 
         protected void onVesselDestroy(Vessel vessel)
         {
-
+            if (backgroundConverters != null)
+                backgroundConverters.Remove(vessel);
         }
 
         public void onEditorPartEvent(ConstructionEventType eventType, Part part)
@@ -353,6 +351,32 @@ namespace WBIResources
                     if (createdParts.Contains(part))
                         createdParts.Remove(part);
                     break;
+            }
+        }
+
+        private void refreshBackgroundConverters()
+        {
+            backgroundConverters = WBIBackgroundConverter.GetBackgroundConverters();
+        }
+
+        private void loadAnomalyResources(ConfigNode[] resourceNodes, bool replaceExisting)
+        {
+            for (int index = 0; index < resourceNodes.Length; index++)
+            {
+                AnomalyResource anomalyResource = new AnomalyResource(resourceNodes[index]);
+                if (string.IsNullOrEmpty(anomalyResource.name) ||
+                    string.IsNullOrEmpty(anomalyResource.resourceName))
+                    continue;
+
+                Dictionary<string, AnomalyResource> resources;
+                if (!anomalyResources.TryGetValue(anomalyResource.name, out resources))
+                {
+                    resources = new Dictionary<string, AnomalyResource>();
+                    anomalyResources.Add(anomalyResource.name, resources);
+                }
+
+                if (replaceExisting || !resources.ContainsKey(anomalyResource.resourceName))
+                    resources[anomalyResource.resourceName] = anomalyResource;
             }
         }
 

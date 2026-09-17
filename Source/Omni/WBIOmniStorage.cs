@@ -398,7 +398,7 @@ namespace WBIResources
 
             if (string.IsNullOrEmpty(ID) || ID == "none" )
                 ID = Guid.NewGuid().ToString();
-            else if (HighLogic.LoadedSceneIsEditor && WBIOmniManager.Instance.WasRecentlyCreated(this.part))
+            else if (HighLogic.LoadedSceneIsEditor && WBIOmniScenario.Instance.WasRecentlyCreated(this.part))
                 ResetSettings();
 
             //Setup the delete icon
@@ -1884,7 +1884,7 @@ namespace WBIResources
 
             // Step 1:
             // Compute the dry tank cost in the stock configuration
-            float defaultResourceCost = WBIOmniManager.Instance.GetOriginalResourceCost(part);
+            float defaultResourceCost = WBIOmniScenario.Instance.GetOriginalResourceCost(part);
             float defaultDryMassCost = defaultCost - defaultResourceCost;
 
             // Step 2:
