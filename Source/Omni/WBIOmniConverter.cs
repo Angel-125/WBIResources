@@ -295,48 +295,50 @@ namespace WBIResources
 
             StringBuilder info = new StringBuilder();
 
-            info.AppendLine("<color=white><b>" + managedName + "</b></color>");
+            // KSP's editor part-details panel treats GetInfo() as plain text and
+            // displays Unity rich-text tags literally.
+            info.AppendLine(managedName);
 
-            info.AppendLine(string.Format("<color=white><b>Base Efficiency: </b>{0:n2}%</color>", this.BaseEfficiency * 100));
+            info.AppendLine(string.Format("Base Efficiency: {0:n2}%", this.BaseEfficiency * 100));
             if (!string.IsNullOrEmpty(reconfigureSkill))
             {
                 string skillsRequired = "Requires " + getRequiredTraits();
                 if (reconfigureRank > 0)
                     skillsRequired = skillsRequired + "(" + reconfigureRank.ToString() + ")";
-                info.AppendLine("<color=white>" + skillsRequired + " to reconfigure.</color>");
+                info.AppendLine(skillsRequired + " to reconfigure.");
             }
 
             if (requiredAmount > 0 && !string.IsNullOrEmpty(requiredResource))
-                info.AppendLine(string.Format("<color=white>Requires {0:n2} units of {1:s} to reconfigure</color>", requiredAmount, requiredResource));
+                info.AppendLine(string.Format("Requires {0:n2} units of {1:s} to reconfigure", requiredAmount, requiredResource));
 
             if (requiresCommNet)
-                info.AppendLine("<color=white><b>Needs connection to KSC:</b> YES</color>");
+                info.AppendLine("Needs connection to KSC: YES");
             else
-                info.AppendLine("<color=white><b>Needs connection to KSC:</b> NO</color>");
+                info.AppendLine("Needs connection to KSC: NO");
 
             if (requiresOrbiting)
-                info.AppendLine("<color=white><b>Must be orbiting:</b> YES</color>");
+                info.AppendLine("Must be orbiting: YES");
             else
-                info.AppendLine("<color=white><b>Must be orbiting:</b> NO</color>");
+                info.AppendLine("Must be orbiting: NO");
 
             if (requiresSubmerged)
-                info.AppendLine("<color=white><b>Must be submerged:</b> YES</color>");
+                info.AppendLine("Must be submerged: YES");
             else if (requiresSplashed)
-                info.AppendLine("<color=white><b>Must be splashed:</b> YES</color>");
+                info.AppendLine("Must be splashed: YES");
             else
-                info.AppendLine("<color=white><b>Must be splashed:</b> NO</color>");
+                info.AppendLine("Must be splashed: NO");
 
             //Required anomalies
             if (!string.IsNullOrEmpty(requiredAnomalies))
             {
-                info.AppendLine("<b>Anomalies: </b>" + requiredAnomalies.Replace(";", ", "));
-                info.AppendLine(string.Format("<b>Minimum Range: </b>{0:f2}m", minAnomalyRange));
+                info.AppendLine("Anomalies: " + requiredAnomalies.Replace(";", ", "));
+                info.AppendLine(string.Format("Minimum Range: {0:f2}m", minAnomalyRange));
             }
             //Solar orbit
             if (solarOrbitRequired)
                 info.AppendLine("Requires an orbit around a star");
 
-            info.AppendLine("<color=white>Inputs and outputs vary depending upon current configuration.</color>");
+            info.AppendLine("Inputs and outputs vary depending upon current configuration.");
 
             return info.ToString();
         }
